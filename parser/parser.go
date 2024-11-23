@@ -43,6 +43,13 @@ type AssignmentStatement struct {
 	Identifier string
 	Value      Expression
 }
+type ForStatement struct {
+	LoopVar string
+	Start   Expression
+	End     Expression
+	Step    Expression
+	Body    Statement
+}
 
 // Parser 结构体用于解析输入
 type Parser struct {
@@ -87,6 +94,8 @@ func (p *Parser) parseStatement() Statement {
 		return p.parseRotStatement()
 	case token.ID:
 		return p.parseAssignmentStatement()
+	case token.FOR:
+		return p.parseForStatement()
 	default:
 		p.error("Unexpected token in statement: " + p.curToken.Literal)
 		return nil
@@ -146,6 +155,49 @@ func (p *Parser) parseRotStatement() *RotStatement {
 	return &RotStatement{Angle: angle}
 }
 
+// parseForStatement 解析 FOR 语句
+func (p *Parser) parseForStatement() *ForStatement {
+	p.nextToken() // skip FOR
+
+	loopVar := p.curToken.Literal
+	p.nextToken() // skip loop variable
+
+	p.expect(token.FROM)
+	start := p.parseExpression()
+
+	p.expect(token.TO)
+	end := p.parseExpression()
+
+	p.expect(token.STEP)
+	step := p.parseExpression()
+
+	p.expect(token.DRAW)
+	body := p.parseDrawStatement()
+
+	return &ForStatement{
+		LoopVar: loopVar,
+		Start:   start,
+		End:     end,
+		Step:    step,
+		Body:    body,
+	}
+}
+
+func (p *Parser) parseDrawStatement() *AssignmentStatement {
+	identifier := "DRAW"
+	p.expect(token.L_BRACKET)
+	value1 := p.parseExpression()
+	p.expect(token.COMMA)
+	value2 := p.parseExpression()
+	value := &BinaryExpression{
+		Left:     value1,
+		Operator: token.COMMA,
+		Right:    value2,
+	}
+	p.expect(token.R_BRACKET)
+	return &AssignmentStatement{Identifier: identifier, Value: value}
+}
+
 // parseAssignmentStatement 解析赋值语句
 func (p *Parser) parseAssignmentStatement() *AssignmentStatement {
 	identifier := p.curToken.Literal
@@ -169,14 +221,15 @@ func (p *Parser) parseExpression() Expression {
 			Operator: operator,
 			Right:    right,
 		}
+		p.nextToken()
 	}
-	p.nextToken()
 	return left
 }
 
 // parseTerm 解析乘法和除法
 func (p *Parser) parseTerm() Expression {
 	left := p.parseFactor()
+	p.nextToken()
 
 	// Check for MUL or DIV operators
 	for p.curToken.Type == token.MUL || p.curToken.Type == token.DIV {
@@ -188,6 +241,7 @@ func (p *Parser) parseTerm() Expression {
 			Operator: operator,
 			Right:    right,
 		}
+		p.nextToken()
 	}
 	return left
 }

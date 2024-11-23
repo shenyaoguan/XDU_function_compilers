@@ -118,3 +118,5 @@ go.work.sum
 # env file
 .env
 
+*.mygo
+*.png

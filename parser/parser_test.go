@@ -2,6 +2,8 @@ package parser
 
 import (
 	"compilers/lexer"
+	"compilers/token"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -50,6 +52,30 @@ func TestParser(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Test "FOR" loop statement
+			input: "FOR T FROM 0 TO 120 STEP 1 DRAW (T, 3*T);",
+			expected: []Statement{
+				&ForStatement{
+					LoopVar: "T",
+					Start:   &ConstantExpression{"0"},
+					End:     &ConstantExpression{"120"},
+					Step:    &ConstantExpression{"1"},
+					Body: &AssignmentStatement{
+						Identifier: "DRAW",
+						Value: &BinaryExpression{
+							Left:     &ConstantExpression{"T"},
+							Operator: token.COMMA,
+							Right: &BinaryExpression{
+								Left:     &ConstantExpression{"3"},
+								Operator: token.MUL,
+								Right:    &ConstantExpression{"T"},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -61,6 +87,8 @@ func TestParser(t *testing.T) {
 
 			if !reflect.DeepEqual(statements, tt.expected) {
 				t.Errorf("For input %s, expected statements %+v, but got %+v", tt.input, tt.expected, statements)
+				fmt.Printf("Expected: %+v\n", tt.expected)
+				fmt.Printf("Got: %+v\n", statements)
 			}
 		})
 	}
