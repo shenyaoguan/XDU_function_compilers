@@ -4,30 +4,122 @@ import (
 	"compilers/lexer"
 	"compilers/token"
 	"fmt"
+	"math"
+	"strconv"
 )
 
-// Statement 表示一个程序中的语句
-type Statement interface{}
+// Statement is an interface for all statement types
+type Statement interface {
+}
 
-// 表达式类型
-type Expression interface{}
+// Expression is an interface for all expression types
+type Expression interface {
+	Evaluate(t float64, variables map[string]float64) []float64
+}
 
-// 常量表达式（例如：数字常量）
+// VariableExpression represents a variable in an expression
+type VariableExpression struct {
+	Name string
+}
+
+func (v *VariableExpression) Evaluate(t float64, variables map[string]float64) []float64 {
+	if val, ok := variables[v.Name]; ok {
+		return []float64{val}
+	}
+	panic(fmt.Sprintf("Undefined variable: %v", v.Name))
+}
+
+// ConstantExpression represents a constant value in an expression
 type ConstantExpression struct {
 	Value string
 }
 
-// 二元表达式（例如：100 + 200）
-type BinaryExpression struct {
-	Left     Expression
-	Operator token.TokenType
-	Right    Expression
+func (c *ConstantExpression) Evaluate(t float64, variables map[string]float64) []float64 {
+	if c.Value == "PI" {
+		return []float64{math.Pi}
+	} else if c.Value == "E" {
+		return []float64{math.E}
+	} else if c.Value == "T" {
+		return []float64{t}
+	}
+	val, err := strconv.ParseFloat(c.Value, 64)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to convert constant expression to float: %v", c.Value))
+	}
+	return []float64{val}
 }
 
-// FunctionCallExpression 表示函数调用的表达式
+// BinaryExpression represents a binary operation in an expression
+type BinaryExpression struct {
+	Left     Expression
+	Right    Expression
+	Operator token.TokenType
+}
+
+func (b *BinaryExpression) Evaluate(t float64, variables map[string]float64) []float64 {
+	left := b.Left.Evaluate(t, variables)[0]
+	right := b.Right.Evaluate(t, variables)[0]
+	var result []float64
+	switch b.Operator {
+	case token.PLUS:
+		result = append(result, left+right)
+	case token.MINUS:
+		result = append(result, left-right)
+	case token.MUL:
+		result = append(result, left*right)
+	case token.DIV:
+		result = append(result, left/right)
+	case token.COMMA:
+		result = append(result, left, right)
+	}
+	return result
+}
+
+// FunctionCallExpression represents a function call in an expression
 type FunctionCallExpression struct {
-	Name      string       // 函数名称，例如 "Sin", "Cos"
-	Arguments []Expression // 参数列表，例如 [T]
+	Name      string
+	Arguments []Expression
+}
+
+func (f *FunctionCallExpression) Evaluate(t float64, variables map[string]float64) []float64 {
+	var args []float64
+	for _, arg := range f.Arguments {
+		args = append(args, arg.Evaluate(t, variables)[0])
+	}
+	return applyFunction(f.Name, args)
+}
+
+func applyFunction(name string, args []float64) []float64 {
+	var result []float64
+	switch name {
+	case "SIN":
+		for _, arg := range args {
+			result = append(result, math.Sin(arg))
+		}
+	case "COS":
+		for _, arg := range args {
+			result = append(result, math.Cos(arg))
+		}
+	case "TAN":
+		for _, arg := range args {
+			result = append(result, math.Tan(arg))
+		}
+	case "SQRT":
+		for _, arg := range args {
+			result = append(result, math.Sqrt(arg))
+		}
+	case "EXP":
+		for _, arg := range args {
+			result = append(result, math.Exp(arg))
+		}
+	case "LN":
+		for _, arg := range args {
+			result = append(result, math.Log(arg))
+		}
+	default:
+		panic(fmt.Sprintf("Unknown function: %s", name))
+	}
+	return result
 }
 
 // 语句类型
@@ -56,6 +148,9 @@ type ForStatement struct {
 	End     Expression
 	Step    Expression
 	Body    Statement
+}
+
+type CommentStatement struct {
 }
 
 // Parser 结构体用于解析输入
@@ -105,6 +200,8 @@ func (p *Parser) parseStatement() Statement {
 		return p.parseForStatement()
 	case token.TAN, token.SIN, token.COS, token.SQRT, token.EXP, token.LN:
 		return p.parseFunctionCall()
+	case token.COMMENT:
+		return p.parseCommentStatement()
 	default:
 		p.error("Unexpected token in statement: " + p.curToken.Literal)
 		return nil
@@ -186,7 +283,10 @@ func (p *Parser) parseDrawStatement() *AssignmentStatement {
 	return &AssignmentStatement{Identifier: identifier, Value: value}
 }
 
-// parseAssignmentStatement 解析赋值语句
+func (p *Parser) parseCommentStatement() *CommentStatement {
+	return &CommentStatement{}
+}
+
 // parseAssignmentStatement 解析赋值语句
 func (p *Parser) parseAssignmentStatement() *AssignmentStatement {
 	identifier := p.curToken.Literal
@@ -276,6 +376,8 @@ func (p *Parser) parseComponent() Expression {
 		expr := p.parseExpression()
 		p.expect(token.R_BRACKET)
 		return expr
+	case token.TAN, token.SIN, token.COS, token.SQRT, token.EXP, token.LN:
+		return p.parseFunctionCall()
 	default:
 		p.error("Unexpected token in component: " + p.curToken.Literal)
 		return nil
@@ -285,7 +387,7 @@ func (p *Parser) parseComponent() Expression {
 // isFunction 检查给定的标识符是否为已知的函数名
 func isFunction(name string) bool {
 	switch name {
-	case "Sin", "Cos", "Tan", "Sqrt", "Exp", "Ln":
+	case "SIN", "COS", "TAN", "SQRT", "EXP", "LN":
 		return true
 	default:
 		return false
@@ -306,7 +408,7 @@ func (p *Parser) parseFunctionCall() *FunctionCallExpression {
 		}
 	}
 
-	p.expect(token.R_BRACKET)
+	//p.expect(token.R_BRACKET)
 	return &FunctionCallExpression{
 		Name:      funcName,
 		Arguments: arguments,
