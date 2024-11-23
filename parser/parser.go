@@ -24,6 +24,12 @@ type BinaryExpression struct {
 	Right    Expression
 }
 
+// FunctionCallExpression 表示函数调用的表达式
+type FunctionCallExpression struct {
+	Name      string       // 函数名称，例如 "Sin", "Cos"
+	Arguments []Expression // 参数列表，例如 [T]
+}
+
 // 语句类型
 type OriginStatement struct {
 	X Expression
@@ -43,6 +49,7 @@ type AssignmentStatement struct {
 	Identifier string
 	Value      Expression
 }
+
 type ForStatement struct {
 	LoopVar string
 	Start   Expression
@@ -96,6 +103,8 @@ func (p *Parser) parseStatement() Statement {
 		return p.parseAssignmentStatement()
 	case token.FOR:
 		return p.parseForStatement()
+	case token.TAN, token.SIN, token.COS, token.SQRT, token.EXP, token.LN:
+		return p.parseFunctionCall()
 	default:
 		p.error("Unexpected token in statement: " + p.curToken.Literal)
 		return nil
@@ -107,31 +116,10 @@ func (p *Parser) parseOriginStatement() *OriginStatement {
 	p.nextToken() // skip ORIGIN
 	p.expect(token.IS)
 	p.expect(token.L_BRACKET)
-
-	// 打印调试信息
-	//fmt.Println("After L_BRACKET:", p.curToken)
-
-	// 解析第一个表达式
 	x := p.parseExpression()
-
-	// 打印调试信息
-	//fmt.Println("After first expression:", p.curToken)
-
-	// 期望逗号
 	p.expect(token.COMMA)
-
-	// 打印调试信息
-	//fmt.Println("After COMMA:", p.curToken)
-	//
-	// 解析第二个表达式
 	y := p.parseExpression()
-
-	// 打印调试信息
-	//fmt.Println("After second expression:", p.curToken)
-
-	// 期望右括号
 	p.expect(token.R_BRACKET)
-
 	return &OriginStatement{X: x, Y: y}
 }
 
@@ -199,11 +187,17 @@ func (p *Parser) parseDrawStatement() *AssignmentStatement {
 }
 
 // parseAssignmentStatement 解析赋值语句
+// parseAssignmentStatement 解析赋值语句
 func (p *Parser) parseAssignmentStatement() *AssignmentStatement {
 	identifier := p.curToken.Literal
 	p.nextToken() // skip identifier
+
+	// 确保当前 token 是赋值操作符 "="
 	p.expect(token.ASSIGN)
+
+	// 解析右侧的表达式
 	value := p.parseExpression()
+
 	return &AssignmentStatement{Identifier: identifier, Value: value}
 }
 
@@ -263,14 +257,21 @@ func (p *Parser) parseFactor() Expression {
 	}
 }
 
-// parseComponent 解析原子表达式
+// parseComponent 解析原子表达式（包括函数调用）
 func (p *Parser) parseComponent() Expression {
+	// 处理数字常量或标识符（变量）
 	switch p.curToken.Type {
 	case token.CONST_ID:
 		return &ConstantExpression{Value: p.curToken.Literal}
 	case token.ID:
-		return &ConstantExpression{Value: p.curToken.Literal} // 变量 T
+		// 判断当前 ID 是否是已知函数名
+		if isFunction(p.curToken.Literal) {
+			return p.parseFunctionCall()
+		}
+		// 处理普通的标识符（变量名）
+		return &ConstantExpression{Value: p.curToken.Literal}
 	case token.L_BRACKET:
+		// 解析括号内的表达式
 		p.nextToken()
 		expr := p.parseExpression()
 		p.expect(token.R_BRACKET)
@@ -278,6 +279,37 @@ func (p *Parser) parseComponent() Expression {
 	default:
 		p.error("Unexpected token in component: " + p.curToken.Literal)
 		return nil
+	}
+}
+
+// isFunction 检查给定的标识符是否为已知的函数名
+func isFunction(name string) bool {
+	switch name {
+	case "Sin", "Cos", "Tan", "Sqrt", "Exp", "Ln":
+		return true
+	default:
+		return false
+	}
+}
+
+// parseFunctionCall 解析函数调用表达式
+func (p *Parser) parseFunctionCall() *FunctionCallExpression {
+	funcName := p.curToken.Literal
+	p.nextToken() // skip function name
+	p.expect(token.L_BRACKET)
+
+	var arguments []Expression
+	for p.curToken.Type != token.R_BRACKET {
+		arguments = append(arguments, p.parseExpression())
+		if p.curToken.Type == token.COMMA {
+			p.nextToken() // skip comma
+		}
+	}
+
+	p.expect(token.R_BRACKET)
+	return &FunctionCallExpression{
+		Name:      funcName,
+		Arguments: arguments,
 	}
 }
 

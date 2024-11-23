@@ -158,7 +158,7 @@ func isDigit(ch rune) bool {
 	return unicode.IsDigit(ch)
 }
 
-// lookupKeyword checks if an identifier is a keyword.
+// lookupKeyword checks if an identifier is a keyword or function.
 func lookupKeyword(ident string) token.TokenType {
 	// Check for specific constants like PI, E, etc.
 	constants := map[string]token.TokenType{
@@ -171,7 +171,7 @@ func lookupKeyword(ident string) token.TokenType {
 		return tok
 	}
 
-	// Check for keywords
+	// Check for keywords and math functions
 	keywords := map[string]token.TokenType{
 		"ORIGIN": token.ORIGIN,
 		"IS":     token.IS,
@@ -182,6 +182,12 @@ func lookupKeyword(ident string) token.TokenType {
 		"TO":     token.TO,
 		"STEP":   token.STEP,
 		"DRAW":   token.DRAW,
+		"SIN":    token.SIN,
+		"COS":    token.COS,
+		"TAN":    token.TAN,
+		"SQRT":   token.SQRT,
+		"EXP":    token.EXP,
+		"LN":     token.LN,
 	}
 
 	if tok, ok := keywords[ident]; ok {

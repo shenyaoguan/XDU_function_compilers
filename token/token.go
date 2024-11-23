@@ -44,6 +44,14 @@ const (
 	STEP   TokenType = "STEP"
 	DRAW   TokenType = "DRAW"
 
+	// Mathematical Functions (新增部分)
+	SIN  TokenType = "SIN"
+	COS  TokenType = "COS"
+	TAN  TokenType = "TAN"
+	SQRT TokenType = "SQRT"
+	EXP  TokenType = "EXP"
+	LN   TokenType = "LN"
+
 	// Comments
 	COMMENT TokenType = "COMMENT"
 )
