@@ -100,25 +100,25 @@ func (p *Parser) parseOriginStatement() *OriginStatement {
 	p.expect(token.L_BRACKET)
 
 	// 打印调试信息
-	fmt.Println("After L_BRACKET:", p.curToken)
+	//fmt.Println("After L_BRACKET:", p.curToken)
 
 	// 解析第一个表达式
 	x := p.parseExpression()
 
 	// 打印调试信息
-	fmt.Println("After first expression:", p.curToken)
+	//fmt.Println("After first expression:", p.curToken)
 
 	// 期望逗号
 	p.expect(token.COMMA)
 
 	// 打印调试信息
-	fmt.Println("After COMMA:", p.curToken)
-
+	//fmt.Println("After COMMA:", p.curToken)
+	//
 	// 解析第二个表达式
 	y := p.parseExpression()
 
 	// 打印调试信息
-	fmt.Println("After second expression:", p.curToken)
+	//fmt.Println("After second expression:", p.curToken)
 
 	// 期望右括号
 	p.expect(token.R_BRACKET)
