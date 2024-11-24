@@ -176,7 +176,7 @@ func (p *Parser) ParseProgram() []Statement {
 	var statements []Statement
 	for p.curToken.Type != token.EOF {
 		statements = append(statements, p.parseStatement())
-		if p.curToken.Type == token.SEMICO {
+		if p.curToken.Type == token.SEMICO || p.curToken.Type == token.COMMENT {
 			p.nextToken()
 		} else {
 			break

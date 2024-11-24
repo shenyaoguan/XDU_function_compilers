@@ -103,6 +103,7 @@ func (l *Lexer) readComment() string {
 	for l.ch != '\n' && l.ch != 0 { // 注释内容直到换行符或文件结束
 		l.readChar()
 	}
+	//l.readChar()
 	return l.input[start:l.position]
 }
 

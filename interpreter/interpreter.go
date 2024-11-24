@@ -44,6 +44,8 @@ func (i *Interpreter) executeStatement(stmt parser.Statement) {
 		i.executeAssignmentStatement(stmt)
 	case *parser.ForStatement:
 		i.executeForStatement(stmt)
+	case *parser.CommentStatement:
+		i.executeCommentStatement(stmt)
 	}
 }
 
@@ -101,6 +103,9 @@ func (i *Interpreter) executeForStatement(stmt *parser.ForStatement) {
 
 	// 执行循环
 	i.state.ParseForStatement(start, end, step, drawExpr)
+}
+
+func (i *Interpreter) executeCommentStatement(stmt *parser.CommentStatement) {
 }
 
 // 计算表达式的值
